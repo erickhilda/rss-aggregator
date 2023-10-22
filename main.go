@@ -1,18 +1,25 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/erickhilda/rssagg/internal/db"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func handleError(w http.ResponseWriter, r *http.Request) {
 	responseErr(w, http.StatusInternalServerError, map[string]string{"status": "error", "message": "Something went wrong"})
+}
+
+type apiConfig struct {
+	Db *db.Queries
 }
 
 func main() {
@@ -21,6 +28,21 @@ func main() {
 	if portstring == "" {
 		fmt.Println("PORT not set")
 	}
+
+	dbUrl := os.Getenv("DB_URL")
+	if dbUrl == "" {
+		fmt.Println("DB_URL not set")
+	}
+
+	conn, err := sql.Open("mysql", dbUrl)
+	if err != nil {
+		log.Fatal("Error connecting to database: ", err)
+	}
+
+	api := &apiConfig{
+		Db: db.New(conn),
+	}
+	fmt.Println(api)
 
 	router := chi.NewRouter()
 
@@ -46,8 +68,8 @@ func main() {
 
 	log.Printf("Listening on port %s", portstring)
 
-	err := serve.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
+	errHttpServe := serve.ListenAndServe()
+	if errHttpServe != nil {
+		log.Fatal(errHttpServe)
 	}
 }
