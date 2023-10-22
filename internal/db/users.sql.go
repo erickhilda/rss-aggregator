@@ -19,7 +19,7 @@ VALUES
 `
 
 type CreateUserParams struct {
-	ID        uint64
+	ID        string
 	Email     string
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -40,7 +40,7 @@ WHERE
   id = ?
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id uint64) (sql.Result, error) {
+func (q *Queries) DeleteUser(ctx context.Context, id string) (sql.Result, error) {
 	return q.db.ExecContext(ctx, deleteUser, id)
 }
 
@@ -56,7 +56,7 @@ WHERE
   id = ?
 `
 
-func (q *Queries) GetUser(ctx context.Context, id uint64) (User, error) {
+func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUser, id)
 	var i User
 	err := row.Scan(
@@ -146,7 +146,7 @@ WHERE
 type UpdateUserParams struct {
 	Email     string
 	UpdatedAt time.Time
-	ID        uint64
+	ID        string
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (sql.Result, error) {
