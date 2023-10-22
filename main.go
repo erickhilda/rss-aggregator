@@ -14,20 +14,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func handleError(w http.ResponseWriter, r *http.Request) {
-	responseErr(w, http.StatusInternalServerError, map[string]string{"status": "error", "message": "Something went wrong"})
-}
-
 type apiConfig struct {
 	Db *db.Queries
 }
 
 func main() {
 	godotenv.Load(".env")
-	portstring := os.Getenv("PORT")
-	if portstring == "" {
-		fmt.Println("PORT not set")
-	}
 
 	dbUrl := os.Getenv("DB_URL")
 	if dbUrl == "" {
@@ -39,10 +31,14 @@ func main() {
 		log.Fatal("Error connecting to database: ", err)
 	}
 
-	api := &apiConfig{
+	apiCfg := &apiConfig{
 		Db: db.New(conn),
 	}
-	fmt.Println(api)
+
+	portstring := os.Getenv("PORT")
+	if portstring == "" {
+		fmt.Println("PORT not set")
+	}
 
 	router := chi.NewRouter()
 
@@ -57,7 +53,7 @@ func main() {
 
 	v1Router := chi.NewRouter()
 	v1Router.Get("/health", handleReadiness)
-	v1Router.Get("/error", handleError)
+	v1Router.Post("/users", apiCfg.handleCreateUser)
 
 	router.Mount("/v1", v1Router)
 
