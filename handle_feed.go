@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/erickhilda/rssagg/internal/db"
+	"github.com/go-chi/chi"
 )
 
 func (apiCfg *apiConfig) handleCreateFeed(w http.ResponseWriter, r *http.Request, user db.User) {
@@ -46,7 +48,6 @@ func (apiCfg *apiConfig) handleCreateFeed(w http.ResponseWriter, r *http.Request
 	responseJSON(w, http.StatusOK, map[string]int64{"id": feedResult})
 }
 
-
 func (apiCfg *apiConfig) handleGetFeed(w http.ResponseWriter, r *http.Request) {
 
 	feeds, err := apiCfg.Db.GetFeed(r.Context())
@@ -56,4 +57,21 @@ func (apiCfg *apiConfig) handleGetFeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseJSON(w, http.StatusOK, databaseFeedsToFeeds(feeds))
+}
+
+func (apiCfg *apiConfig) handleGetFeedById(w http.ResponseWriter, r *http.Request) {
+	feedId := chi.URLParam(r, "id")
+	id, err := strconv.ParseUint(feedId, 10, 64)
+	if err != nil {
+		responseJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid feed id"})
+		return
+	}
+
+	feed, err := apiCfg.Db.GetFeedByID(r.Context(), id)
+	if err != nil {
+		responseJSON(w, http.StatusInternalServerError, map[string]string{"error": "Cannot find feed"})
+		return
+	}
+
+	responseJSON(w, http.StatusOK, databaseFeedToFeed(feed))
 }

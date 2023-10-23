@@ -8,4 +8,12 @@ VALUES
 SELECT
   *
 FROM
+  feeds;
+
+-- name: GetFeedByID :one
+SELECT
+  *
+FROM
   feeds
+WHERE
+  id = ?;
