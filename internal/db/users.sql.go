@@ -13,9 +13,9 @@ import (
 
 const createUser = `-- name: CreateUser :execresult
 INSERT INTO
-  users (id, email, created_at, updated_at)
+  users (id, email, created_at, updated_at, api_key)
 VALUES
-  (?, ?, ?, ?)
+  (?, ?, ?, ?, ?)
 `
 
 type CreateUserParams struct {
@@ -23,6 +23,7 @@ type CreateUserParams struct {
 	Email     string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	ApiKey    string
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Result, error) {
@@ -31,6 +32,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Res
 		arg.Email,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.ApiKey,
 	)
 }
 
@@ -56,9 +58,16 @@ WHERE
   id = ?
 `
 
-func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
+type GetUserRow struct {
+	ID        string
+	Email     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) GetUser(ctx context.Context, id string) (GetUserRow, error) {
 	row := q.db.QueryRowContext(ctx, getUser, id)
-	var i User
+	var i GetUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
@@ -68,7 +77,7 @@ func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 	return i, err
 }
 
-const getUserByEmail = `-- name: GetUserByEmail :one
+const getUserByApiKey = `-- name: GetUserByApiKey :one
 SELECT
   id,
   email,
@@ -77,12 +86,19 @@ SELECT
 FROM
   users
 WHERE
-  email = ?
+  api_key = ?
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
-	var i User
+type GetUserByApiKeyRow struct {
+	ID        string
+	Email     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) GetUserByApiKey(ctx context.Context, apiKey string) (GetUserByApiKeyRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByApiKey, apiKey)
+	var i GetUserByApiKeyRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
@@ -106,15 +122,22 @@ LIMIT
   ?
 `
 
-func (q *Queries) ListUsers(ctx context.Context, limit int32) ([]User, error) {
+type ListUsersRow struct {
+	ID        string
+	Email     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) ListUsers(ctx context.Context, limit int32) ([]ListUsersRow, error) {
 	rows, err := q.db.QueryContext(ctx, listUsers, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []User
+	var items []ListUsersRow
 	for rows.Next() {
-		var i User
+		var i ListUsersRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Email,

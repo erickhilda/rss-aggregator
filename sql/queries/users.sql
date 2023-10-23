@@ -1,8 +1,8 @@
 -- name: CreateUser :execresult
 INSERT INTO
-  users (id, email, created_at, updated_at)
+  users (id, email, created_at, updated_at, api_key)
 VALUES
-  (?, ?, ?, ?);
+  (?, ?, ?, ?, ?);
 
 -- name: GetUser :one
 SELECT
@@ -15,7 +15,7 @@ FROM
 WHERE
   id = ?;
 
--- name: GetUserByEmail :one
+-- name: GetUserByApiKey :one
 SELECT
   id,
   email,
@@ -24,7 +24,7 @@ SELECT
 FROM
   users
 WHERE
-  email = ?;
+  api_key = ?;
 
 -- name: UpdateUser :execresult
 UPDATE users
