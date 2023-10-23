@@ -82,28 +82,23 @@ SELECT
   id,
   email,
   created_at,
-  updated_at
+  updated_at,
+  api_key
 FROM
   users
 WHERE
   api_key = ?
 `
 
-type GetUserByApiKeyRow struct {
-	ID        string
-	Email     string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
-
-func (q *Queries) GetUserByApiKey(ctx context.Context, apiKey string) (GetUserByApiKeyRow, error) {
+func (q *Queries) GetUserByApiKey(ctx context.Context, apiKey string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByApiKey, apiKey)
-	var i GetUserByApiKeyRow
+	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ApiKey,
 	)
 	return i, err
 }

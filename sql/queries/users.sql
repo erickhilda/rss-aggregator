@@ -20,7 +20,8 @@ SELECT
   id,
   email,
   created_at,
-  updated_at
+  updated_at,
+  api_key
 FROM
   users
 WHERE

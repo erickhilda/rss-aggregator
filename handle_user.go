@@ -4,11 +4,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/erickhilda/rssagg/auth"
 	"github.com/erickhilda/rssagg/internal/db"
 	"github.com/google/uuid"
 )
@@ -68,24 +66,17 @@ func (apiCfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	responseJSON(w, http.StatusOK, databaseUserToUser(createUserParams))
+	createdUser := db.User{
+		ID:        createUserParams.ID,
+		Email:     createUserParams.Email,
+		CreatedAt: createUserParams.CreatedAt,
+		UpdatedAt: createUserParams.UpdatedAt,
+		ApiKey:    createUserParams.ApiKey,
+	}
+
+	responseJSON(w, http.StatusOK, databaseUserToUser(createdUser))
 }
 
-func (apiCfg *apiConfig) handleGetUser(w http.ResponseWriter, r *http.Request) {
-	apiKey, err := auth.GetApiKey(r.Header)
-
-	if err != nil {
-		responseJSON(w, http.StatusUnauthorized, err)
-		return
-	}
-
-	user, err := apiCfg.Db.GetUserByApiKey(r.Context(), apiKey)
-	fmt.Println(err)
-
-	if err != nil {
-		responseJSON(w, http.StatusInternalServerError, fmt.Sprintf("error getting user: %s", err))
-		return
-	}
-
-	responseJSON(w, http.StatusOK, user)
+func (apiCfg *apiConfig) handleGetUser(w http.ResponseWriter, r *http.Request, user db.User) {
+	responseJSON(w, http.StatusOK, databaseUserToUser(user))
 }
