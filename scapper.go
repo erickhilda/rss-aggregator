@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"sync"
 	"time"
@@ -43,32 +44,31 @@ func scrapeFeed(database *db.Queries, feed db.Feed, wg *sync.WaitGroup) {
 	}
 
 	for _, item := range rssFeed.Channel.Items {
-		log.Printf("Creating item %s", item.Title)
+		description := sql.NullString{}
+		if item.Description != "" {
+			description.Valid = true
+			description.String = item.Description
+		}
+
+		pubDate, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+			log.Printf("Error parsing date %s: %s", item.PubDate, err)
+			continue
+		}
+
+		_, errCreatePost := database.CreatePost(context.Background(), db.CreatePostParams{
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: description,
+			PublishedAt: pubDate,
+			FeedID:      int32(feed.ID),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		})
+		if errCreatePost != nil {
+			log.Printf("Error creating post: %s", errCreatePost)
+			continue
+		}
 	}
 	log.Printf("Done fetching %s", feed.Url)
-	// log.Printf("Fetching %s", feed.Url)
-	// rssFeed, err := urlToFeed(feed.Url)
-	// if err != nil {
-	// 	log.Printf("Error fetching feed %s: %s", feed.Url, err)
-	// 	return
-	// }
-	// for _, item := range rssFeed.Channel.Items {
-	// 	_, err := database.CreateItem(context.Background(), db.CreateItemParams{
-	// 		Title:       item.Title,
-	// 		Link:        item.Link,
-	// 		Description: item.Description,
-	// 		PubDate:     item.PubDate,
-	// 		FeedID:      feed.ID,
-	// 	})
-	// 	if err != nil {
-	// 		log.Printf("Error creating item: %s", err)
-	// 	}
-	// }
-	// _, err = database.UpdateFeed(context.Background(), db.UpdateFeedParams{
-	// 	ID: feed.ID,
-	// 	LastScrapedAt: time.Now(),
-	// })
-	// if err != nil {
-	// 	log.Printf("Error updating feed: %s", err)
-	// }
 }
