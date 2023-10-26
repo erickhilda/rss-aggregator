@@ -17,3 +17,22 @@ FROM
   feeds
 WHERE
   id = ?;
+
+-- name: GetNextFeedsToFetch :many
+SELECT
+  *
+FROM
+  feeds
+ORDER BY
+  last_fetched_at IS NULL DESC,
+  last_fetched_at DESC
+LIMIT
+  ?;
+
+-- name: MarkFeedAsFetched :execresult
+UPDATE feeds
+SET
+  last_fetched_at = NOW(),
+  updated_at = NOW()
+WHERE
+  id = ?;

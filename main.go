@@ -6,12 +6,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/erickhilda/rssagg/internal/db"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
-	"github.com/joho/godotenv"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 )
 
 type apiConfig struct {
@@ -19,6 +20,13 @@ type apiConfig struct {
 }
 
 func main() {
+	// feed, err := urlToFeed("https://www.wagslane.dev/index.xml")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// fmt.Println(feed)
+
 	godotenv.Load(".env")
 
 	dbUrl := os.Getenv("DB_URL")
@@ -34,6 +42,8 @@ func main() {
 	apiCfg := &apiConfig{
 		Db: db.New(conn),
 	}
+
+	go startScapper(apiCfg.Db, 4, time.Minute)
 
 	portstring := os.Getenv("PORT")
 	if portstring == "" {

@@ -38,7 +38,7 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (sql.Res
 
 const getFeed = `-- name: GetFeed :many
 SELECT
-  id, created_at, updated_at, name, url, user_id
+  id, created_at, updated_at, name, url, user_id, last_fetched_at
 FROM
   feeds
 `
@@ -59,6 +59,7 @@ func (q *Queries) GetFeed(ctx context.Context) ([]Feed, error) {
 			&i.Name,
 			&i.Url,
 			&i.UserID,
+			&i.LastFetchedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -75,7 +76,7 @@ func (q *Queries) GetFeed(ctx context.Context) ([]Feed, error) {
 
 const getFeedByID = `-- name: GetFeedByID :one
 SELECT
-  id, created_at, updated_at, name, url, user_id
+  id, created_at, updated_at, name, url, user_id, last_fetched_at
 FROM
   feeds
 WHERE
@@ -92,6 +93,63 @@ func (q *Queries) GetFeedByID(ctx context.Context, id uint64) (Feed, error) {
 		&i.Name,
 		&i.Url,
 		&i.UserID,
+		&i.LastFetchedAt,
 	)
 	return i, err
+}
+
+const getNextFeedsToFetch = `-- name: GetNextFeedsToFetch :many
+SELECT
+  id, created_at, updated_at, name, url, user_id, last_fetched_at
+FROM
+  feeds
+ORDER BY
+  last_fetched_at IS NULL DESC,
+  last_fetched_at DESC
+LIMIT
+  ?
+`
+
+func (q *Queries) GetNextFeedsToFetch(ctx context.Context, limit int32) ([]Feed, error) {
+	rows, err := q.db.QueryContext(ctx, getNextFeedsToFetch, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Feed
+	for rows.Next() {
+		var i Feed
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Url,
+			&i.UserID,
+			&i.LastFetchedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markFeedAsFetched = `-- name: MarkFeedAsFetched :execresult
+UPDATE feeds
+SET
+  last_fetched_at = NOW(),
+  updated_at = NOW()
+WHERE
+  id = ?
+`
+
+func (q *Queries) MarkFeedAsFetched(ctx context.Context, id uint64) (sql.Result, error) {
+	return q.db.ExecContext(ctx, markFeedAsFetched, id)
 }
