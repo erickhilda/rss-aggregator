@@ -13,7 +13,15 @@ import (
 
 const createPost = `-- name: CreatePost :execresult
 INSERT INTO
-  posts (created_at, updated_at, feed_id, title, url, description, published_at)
+  posts (
+    created_at,
+    updated_at,
+    feed_id,
+    title,
+    url,
+    description,
+    published_at
+  )
 VALUES
   (?, ?, ?, ?, ?, ?, ?)
 `
@@ -38,4 +46,55 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (sql.Res
 		arg.Description,
 		arg.PublishedAt,
 	)
+}
+
+const getPostsForUser = `-- name: GetPostsForUser :many
+SELECT
+  posts.id, posts.title, posts.description, posts.created_at, posts.updated_at, posts.published_at, posts.url, posts.feed_id
+FROM
+  posts
+  JOIN feed_follows ON feed_follows.feed_id = posts.feed_id
+WHERE
+  feed_follows.user_id = ?
+ORDER BY
+  posts.published_at DESC
+LIMIT
+  ?
+`
+
+type GetPostsForUserParams struct {
+	UserID string
+	Limit  int32
+}
+
+func (q *Queries) GetPostsForUser(ctx context.Context, arg GetPostsForUserParams) ([]Post, error) {
+	rows, err := q.db.QueryContext(ctx, getPostsForUser, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Post
+	for rows.Next() {
+		var i Post
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.PublishedAt,
+			&i.Url,
+			&i.FeedID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

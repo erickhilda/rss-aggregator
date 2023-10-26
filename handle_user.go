@@ -80,3 +80,16 @@ func (apiCfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request
 func (apiCfg *apiConfig) handleGetUser(w http.ResponseWriter, r *http.Request, user db.User) {
 	responseJSON(w, http.StatusOK, databaseUserToUser(user))
 }
+
+func (apiCfg *apiConfig) handleGetPostsForUser(w http.ResponseWriter, r *http.Request, user db.User) {
+	posts, err := apiCfg.Db.GetPostsForUser(r.Context(), db.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit: 10,
+	})
+	if err != nil {
+		responseJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responseJSON(w, http.StatusOK, databasePostsToPosts(posts))
+}

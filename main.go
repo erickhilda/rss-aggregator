@@ -20,13 +20,6 @@ type apiConfig struct {
 }
 
 func main() {
-	// feed, err := urlToFeed("https://www.wagslane.dev/index.xml")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// fmt.Println(feed)
-
 	godotenv.Load(".env")
 
 	dbUrl := os.Getenv("DB_URL")
@@ -63,11 +56,16 @@ func main() {
 
 	v1Router := chi.NewRouter()
 	v1Router.Get("/health", handleReadiness)
+
 	v1Router.Post("/users", apiCfg.handleCreateUser)
 	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handleGetUser))
+
+	v1Router.Get("/posts", apiCfg.middlewareAuth(apiCfg.handleGetPostsForUser))
+	
 	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handleCreateFeed))
 	v1Router.Get("/feeds", apiCfg.handleGetFeed)
 	v1Router.Get("/feeds/{id}", apiCfg.handleGetFeedById)
+	
 	v1Router.Post("/feed_follows", apiCfg.middlewareAuth(apiCfg.handleCreateFeedFollow))
 	v1Router.Get("/feed_follows", apiCfg.middlewareAuth(apiCfg.handleGetFeedFollowsByUserId))
 	v1Router.Delete("/feed_follows/{id}", apiCfg.middlewareAuth(apiCfg.handleDeleteFeedFollow))
